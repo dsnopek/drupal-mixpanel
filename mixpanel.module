@@ -40,15 +40,19 @@ code;
  *
  * @return array of the default mixpanel variables.
  **/
-function mixpanel_get_defaults($reset = FALSE) {
+function mixpanel_get_defaults($user = NULL, $reset = FALSE) {
   static $defaults;
-  global $user;
+
+  if($account == NULL) {
+    global $user;
+    $account = $user;
+  }
 
   if (!isset($defaults) || $reset) {
-    $cohort = format_date($user->created, 'custom', "M-Y");
-    $defaults = array('uid' => $user->uid,
+    $cohort = format_date($account->created, 'custom', "M-Y");
+    $defaults = array('uid' => $account->uid,
                        'cohort' => $cohort,
-                       'distinct_id' => $user->uid,
+                       'distinct_id' => $account->uid,
                        'ip' => $_SERVER['REMOTE_ADDR'],
     );
 
