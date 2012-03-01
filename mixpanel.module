@@ -260,13 +260,17 @@ function mixpanel_comment($comment, $op) {
                                     WHERE nid = %d", $comment->nid));
   switch($op) {
     case 'publish':
-     mixpanel_track("comment-created", array('node-id' => $comment->nid,
-                                        'node-title' => $node_results['title'],
-                                        'node-type' => $node_results['type'],
-                                        'comment-id' => $comment->cid,
-                                        'group-id' => $group_results['group_nid'],
-                                        'group-name' => $group_results['title']));
-     break;
+      mixpanel_track("comment-created", 
+        array(
+         'node-id' => $comment->nid,
+         'node-title' => $node_results['title'],
+         'node-type' => $node_results['type'],
+         'comment-id' => $comment->cid,
+         'group-id' => $group_results['group_nid'],
+         'group-name' => $group_results['title']
+        )
+      ); 
+      break;
   }
 }
 
