@@ -270,7 +270,7 @@ function mixpanel_comment($comment, $op) {
   }
 }
 
-function mixpanel_track($event, $custom_properties = array(), $account = null) {
+function mixpanel_track($event, $custom_properties = array(), $account = NULL) {
   if (variable_get('mixpanel_token', '') == '') {
     return;
   }
