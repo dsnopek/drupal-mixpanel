@@ -2,6 +2,12 @@
 
 include('mixpanel.api.inc');
 
+include('includes/mixpanel.node.inc');
+include('includes/mixpanel.user.inc');
+include('includes/mixpanel.comment.inc');
+include('includes/mixpanel.og.inc');
+
+
 /**
  * Implementation of hook_init().
  */
@@ -37,34 +43,6 @@ code;
 
 }
 
-/**
- * Setup default variables for Mixpanel to send.
- *
- * @return array of the default mixpanel variables.
- **/
-function mixpanel_get_defaults($user = NULL, $reset = FALSE) {
-  static $defaults;
-
-  // If user object is passed in, favor that, otherwise, set $account = the current object.
-  if($account == NULL) {
-    global $user;
-    $account = $user;
-  }
-
-  if (!isset($defaults) || $reset) {
-    $cohort = format_date($account->created, 'custom', "M-Y");
-    $defaults = array('uid' => $account->uid,
-                       'cohort' => $cohort,
-                       'distinct_id' => $account->uid,
-                       'ip' => $_SERVER['REMOTE_ADDR'],
-    );
-
-    // Let other modules alter the defaults.
-    drupal_alter('mixpanel_defaults', $defaults);
-  }
-
-  return $defaults;
-}
 /**
  * Implementation of hook_menu(). 
  */
@@ -117,163 +95,34 @@ function mixpanel_requirements($phase) {
 }
 
 /**
- * Implementation of hook_form_alter().
- */
-function mixpanel_form_alter(&$form, &$form_state, $form_id) {
-  switch ($form_id) {
-    case 'contact_mail_user':
-      $form['#submit'][] = "mixpanel_contact_mail_user_submit";
-      break;
-    case 'user_profile_form':
-      $form['#submit'][] = "mixpanel_user_profile_form_submit";
-      break;
-    case 'search_theme_form':
-      $form['#submit'][] = "mixpanel_search_theme_form_submit";
-      break;
+ * Setup default variables for Mixpanel to send.
+ *
+ * @return array of the default mixpanel variables.
+ **/
+function mixpanel_get_defaults($user = NULL, $reset = FALSE) {
+  static $defaults;
+
+  // If user object is passed in, favor that, otherwise, set $account = the current object.
+  if($account == NULL) {
+    global $user;
+    $account = $user;
   }
+
+  if (!isset($defaults) || $reset) {
+    $cohort = format_date($account->created, 'custom', "M-Y");
+    $defaults = array('uid' => $account->uid,
+                       'cohort' => $cohort,
+                       'distinct_id' => $account->uid,
+                       'ip' => $_SERVER['REMOTE_ADDR'],
+    );
+
+    // Let other modules alter the defaults.
+    drupal_alter('mixpanel_defaults', $defaults);
+  }
+
+  return $defaults;
 }
 
-/**
- * Submit function for contact_mail_user to track usage of the contact form.
- */
-function mixpanel_contact_mail_user_submit($form, $form_state) {
-  mixpanel_track("contact-form-user");
-}
-
-/**
- * Submit function for the user_profile_form to let us track user changes
- * to their accounts.
- */
-function mixpanel_user_profile_form_submit($form, $form_state) {
-  mixpanel_track("user-account-updated");
-
-  // If a picture was uploaded, submit an event for that as well.
-  if (isset($form_state['values']['picture'])) {
-    mixpanel_track("user-picture-changed");
-  }
-}
-
-/**
- * Submit function for the search form to let us track searches.
- */
-function mixpanel_search_theme_form_submit($form, $form_state) {
-  mixpanel_track("search", array('search-string' => $form_state['values']['search_theme_form']));
-}
-
-/*
- * Implementation of hook_og().
- */
-function mixpanel_og($op, $gid, $uid, $args) {
-  if (variable_get('mixpanel_token', '') == '') {
-    return;
-  }
-  $account = user_load($uid);
-  $group_node = node_load($gid);
-  switch ($op) {
-    case 'user insert':
-      mixpanel_track("group-join", array("group-id" => $gid, "group-name" => $group_node->title), $account);
-      break;
-
-    case 'user delete':
-      mixpanel_track("group-left", array("group-id" => $gid, "group-name" => $group_node->title), $account);
-      break;
-  }
-}
-
-/*
- * Implementation of hook_user().
- */
-function mixpanel_user($op, $edit, $account, $category) {
-  if (variable_get('mixpanel_token', '') == '') {
-    return;
-  }
-  switch($op) {
-    case 'insert':
-      mixpanel_track("user-inserted", null, $account);
-      break;
-
-    case 'delete':
-      mixpanel_track("user-deleted", null, $acccount);
-      break;
-
-    case 'update':
-      // We can't use this unfortunately as the LDAP module updates a person's account each time they login.
-      // We'll use hook_form_alter instead to detect someone submittng an account update.
-      //mixpanel_track("user-account-updated", null, $account);
-      break;
-
-    case 'login':
-      mixpanel_track("user-login", null, $account);
-      break;
-
-    case 'logout':
-      mixpanel_track("user-logout", null, $account);
-      break;
-  }
-}
-
-/*
- * Implementation of hook_nodeapi().
- */
-function mixpanel_nodeapi($node, $op) {
-  if (variable_get('mixpanel_token', '') == '') {
-    return;
-  }
-  switch($op) {
-    case 'delete':
-      mixpanel_track("node-deleted", array('node-title' => $node->title,
-                                        'group-id' => array_pop(array_values($node->og_groups)),
-                                        'node-id' => $node->nid,
-                                        'node-type' => $node->type));
-      break;
-
-    case 'insert':
-      mixpanel_track("node-created", array('node-title' => $node->title,
-                                        'group-id' => array_pop(array_values($node->og_groups)),
-                                        'node-id' => $node->nid,
-                                        'node-type' => $node->type));
-      break;
-
-    case 'update':
-      mixpanel_track("node-updated", array('node-title' => $node->title,
-                                        'group-id' => array_pop(array_values($node->og_groups)),
-                                        'node-id' => $node->nid,
-                                        'node-type' => $node->type));
-  }
-}
-
-/*
- * Implementation of hook_comment().
- */
-function mixpanel_comment($comment, $op) {
-  if (variable_get('mixpanel_token', '') == '') {
-    return;
-  }
-  // $comment can be an object or an array.
-  $comment = (object)$comment;
-  $group_results = db_fetch_array(db_query("SELECT o.group_nid, n.title
-                                FROM {og_ancestry} o
-                                JOIN {node} n
-                                ON n.nid = o.group_nid
-                                WHERE o.nid = %d", $comment->nid));
-  $node_results = db_fetch_array(db_query("SELECT title, type
-                                    FROM {node}
-                                    WHERE nid = %d", $comment->nid));
-  switch($op) {
-    case 'publish':
-      mixpanel_track("comment-created",
-        array(
-         'node-id' => $comment->nid,
-         'node-title' => $node_results['title'],
-         'node-type' => $node_results['type'],
-         'comment-id' => $comment->cid,
-         'group-id' => $group_results['group_nid'],
-         'group-name' => $group_results['title']
-        )
-      );
-      break;
-  }
-}
 
 function mixpanel_track($event, $custom_properties = array(), $account = NULL) {
   if (variable_get('mixpanel_token', '') == '') {
@@ -298,4 +147,23 @@ function mixpanel_track($event, $custom_properties = array(), $account = NULL) {
   $token = variable_get('mixpanel_token', '');
   $metrics = new MetricsTracker($token);
   $metrics->track($event, $properties);
+}
+
+
+
+/**
+ * Implementation of hook_form_alter().
+ */
+function mixpanel_form_alter(&$form, &$form_state, $form_id) {
+  switch ($form_id) {
+    case 'contact_mail_user':
+      $form['#submit'][] = "mixpanel_contact_mail_user_submit";
+      break;
+    case 'user_profile_form':
+      $form['#submit'][] = "mixpanel_user_profile_form_submit";
+      break;
+    case 'search_theme_form':
+      $form['#submit'][] = "mixpanel_search_theme_form_submit";
+      break;
+  }
 }
