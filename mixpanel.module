@@ -260,7 +260,7 @@ function mixpanel_comment($comment, $op) {
                                     WHERE nid = %d", $comment->nid));
   switch($op) {
     case 'publish':
-      mixpanel_track("comment-created", 
+      mixpanel_track("comment-created",
         array(
          'node-id' => $comment->nid,
          'node-title' => $node_results['title'],
@@ -269,7 +269,7 @@ function mixpanel_comment($comment, $op) {
          'group-id' => $group_results['group_nid'],
          'group-name' => $group_results['title']
         )
-      ); 
+      );
       break;
   }
 }
