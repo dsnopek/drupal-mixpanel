@@ -99,7 +99,7 @@ function mixpanel_requirements($phase) {
  *
  * @return array of the default mixpanel variables.
  **/
-function mixpanel_get_defaults($user = NULL, $reset = FALSE) {
+function mixpanel_get_defaults($account = NULL, $reset = FALSE) {
   static $defaults;
 
   // If user object is passed in, favor that, otherwise, set $account = the current object.
