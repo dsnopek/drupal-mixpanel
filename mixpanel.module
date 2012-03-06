@@ -137,13 +137,15 @@ function mixpanel_track($event, $custom_properties = array(), $account = NULL) {
   // Setup default properties.
   $properties = mixpanel_get_defaults($account);
 
-  // Let other modules alter the properties.
-  drupal_alter('mixpanel_event_properties', $properties);
-
   // Merge default properties with any passed-in properties. Any passed-in properties will overwrite the defaults.
   if (!empty($custom_properties)) {
     $properties = array_merge($properties, $custom_properties);
   }
+  
+  // Let other modules alter the properties.
+  drupal_alter('mixpanel_event', $properties, $event);
+  
+//  dsm(array('event'=>$event, 'prop' => $properties));
   $token = variable_get('mixpanel_token', '');
   $metrics = new MetricsTracker($token);
   $metrics->track($event, $properties);
