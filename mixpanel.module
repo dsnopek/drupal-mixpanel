@@ -110,21 +110,24 @@ function mixpanel_get_defaults($user = NULL, $reset = FALSE) {
 
   if (!isset($defaults) || $reset) {
     $cohort = format_date($account->created, 'custom', "M-Y");
-    $defaults = array('uid' => $account->uid,
-                       'cohort' => $cohort,
-                       'distinct_id' => $account->uid,
-                       'ip' => $_SERVER['REMOTE_ADDR'],
+    $defaults = array(
+      'uid' => $account->uid,
+      'user_created' => $account->created,
+      'cohort' => $cohort,
+      'distinct_id' => $account->uid,
+      'ip' => $_SERVER['REMOTE_ADDR'],
     );
 
     // Let other modules alter the defaults.
-    drupal_alter('mixpanel_defaults', $defaults);
+    drupal_alter('mixpanel_defaults', $defaults, $account);
   }
 
   return $defaults;
 }
 
-
 function mixpanel_track($event, $custom_properties = array(), $account = NULL) {
+  global $user;
+  
   if (variable_get('mixpanel_token', '') == '') {
     return;
   }
