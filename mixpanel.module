@@ -48,6 +48,7 @@ function mixpanel_get_defaults($reset = FALSE) {
     $cohort = format_date($user->created, 'custom', "M-Y");
     $defaults = array('uid' => $user->uid,
                        'cohort' => $cohort,
+                       'mp_name_tag' => $user->name,
                        'distinct_id' => $user->uid,
                        'ip' => $_SERVER['REMOTE_ADDR'],
     );
