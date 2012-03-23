@@ -44,30 +44,6 @@ code;
 }
 
 /**
- * Setup default variables for Mixpanel to send.
- *
- * @return array of the default mixpanel variables.
- **/
-function mixpanel_get_defaults($reset = FALSE) {
-  static $defaults;
-  global $user;
-
-  if (!isset($defaults) || $reset) {
-    $cohort = format_date($user->created, 'custom', "M-Y");
-    $defaults = array('uid' => $user->uid,
-                       'cohort' => $cohort,
-                       'mp_name_tag' => $user->name,
-                       'distinct_id' => $user->uid,
-                       'ip' => $_SERVER['REMOTE_ADDR'],
-    );
-
-    // Let other modules alter the defaults.
-    drupal_alter('mixpanel_defaults', $defaults);
-  }
-
-  return $defaults;
-}
-/**
  * Implementation of hook_menu().
  */
 function mixpanel_menu() {
@@ -138,6 +114,7 @@ function mixpanel_get_defaults($account = NULL, $reset = FALSE) {
       'uid' => $account->uid,
       'user_created' => $account->created,
       'cohort' => $cohort,
+      'mp_name_tag' => $user->name,
       'distinct_id' => $account->uid,
       'ip' => $_SERVER['REMOTE_ADDR'],
     );
