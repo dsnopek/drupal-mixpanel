@@ -173,3 +173,29 @@ function mixpanel_form_alter(&$form, &$form_state, $form_id) {
       break;
   }
 }
+
+/**
+ * Implementation of hook_block().
+ */
+function mixpanel_block($op = 'list', $delta = 0, $edit = array()) {
+  if ($op == 'list') {
+    return array(
+      'mixpanel_badge_dark' => array(
+        'info' => t('Mixpanel badge (dark)'),
+        'cache' => BLOCK_CACHE_GLOBAL,
+      ),
+      'mixpanel_badge_light' => array(
+        'info' => t('Mixpanel badge (light)'),
+        'cache' => BLOCK_CACHE_GLOBAL,
+      ),
+    );
+  }
+
+  if ($op == 'view') {
+    $img = 'badge_' . ($delta == 'mixpanel_badge_dark' ? 'blue' : 'light') . '.png';
+    return array(
+      'subject' => NULL,
+      'content' => '<a href="http://mixpanel.com/f/partner"><img src="http://mixpanel.com/site_media/images/partner/' . $img . '" alt="Real Time Web Analytics" /></a>',
+    );
+  }
+}
