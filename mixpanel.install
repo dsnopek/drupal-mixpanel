@@ -1,0 +1,11 @@
+<?php
+
+/**
+ * For backward compatibility, automatically enable the 'mixpanel_defaults' module.
+ */
+function mixpanel_update_6001() {
+  drupal_install_modules(array(
+    'mixpanel_defaults',
+  ));
+}
+

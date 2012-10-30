@@ -3,7 +3,7 @@
 /*
  * Implementation of hook_user().
  */
-function mixpanel_user($op, $edit, $account, $category) {
+function mixpanel_defaults_user($op, $edit, $account, $category) {
   if (variable_get('mixpanel_token', '') == '') {
     return;
   }
@@ -35,7 +35,7 @@ function mixpanel_user($op, $edit, $account, $category) {
 /**
  * Submit function for contact_mail_user to track usage of the contact form.
  */
-function mixpanel_contact_mail_user_submit($form, $form_state) {
+function mixpanel_defaults_contact_mail_user_submit($form, $form_state) {
   mixpanel_track("contact-form-user");
 }
 
@@ -43,7 +43,7 @@ function mixpanel_contact_mail_user_submit($form, $form_state) {
  * Submit function for the user_profile_form to let us track user changes
  * to their accounts.
  */
-function mixpanel_user_profile_form_submit($form, $form_state) {
+function mixpanel_defaults_user_profile_form_submit($form, $form_state) {
   mixpanel_track("user-account-updated");
 
   // If a picture was uploaded, submit an event for that as well.

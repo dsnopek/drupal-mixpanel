@@ -3,7 +3,7 @@
 /*
  * Implementation of hook_comment().
  */
-function mixpanel_comment($comment, $op) {
+function mixpanel_defaults_comment($comment, $op) {
   if (variable_get('mixpanel_token', '') == '') {
     return;
   }
