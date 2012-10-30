@@ -1,12 +1,11 @@
 <?php
 
-include('mixpanel.api.inc');
-
 include('includes/mixpanel.node.inc');
 include('includes/mixpanel.user.inc');
 include('includes/mixpanel.comment.inc');
 include('includes/mixpanel.og.inc');
 
+define('MIXPANEL_API_URL', 'http://api.mixpanel.com/');
 
 /**
  * Implementation of hook_init().
@@ -97,12 +96,23 @@ function mixpanel_requirements($phase) {
 }
 
 /**
+ * Implementation of hook_cron_queue_info().
+ */
+function mixpanel_cron_queue_info() {
+  return array(
+    'mixpanel_track' => array(
+      'worker callback' => '_mixpanel_track_queue_callback',
+    ),
+  );
+}
+
+/**
  * Setup default variables for Mixpanel to send.
  *
  * @return array of the default mixpanel variables.
  **/
 function mixpanel_get_defaults($account = NULL, $reset = FALSE) {
-  static $defaults;
+  static $defaults = array();
 
   // If user object is passed in, favor that, otherwise, set $account = the current object.
   if($account == NULL) {
@@ -110,28 +120,29 @@ function mixpanel_get_defaults($account = NULL, $reset = FALSE) {
     $account = $user;
   }
 
-  if (!isset($defaults) || $reset) {
+  if (!isset($defaults[$account->uid]) || $reset) {
     $cohort = format_date($account->created, 'custom', "M-Y");
-    $defaults = array(
+    $defaults[$account->uid] = array(
       'uid' => $account->uid,
       'user_created' => $account->created,
       'cohort' => $cohort,
-      'mp_name_tag' => $user->name,
+      'mp_name_tag' => $account->name,
       'distinct_id' => $account->uid,
-      'ip' => $_SERVER['REMOTE_ADDR'],
+      'ip' => ip_address(),
     );
 
     // Let other modules alter the defaults.
-    drupal_alter('mixpanel_defaults', $defaults, $account);
+    drupal_alter('mixpanel_defaults', $defaults[$account->uid], $account);
   }
 
-  return $defaults;
+  return $defaults[$account->uid];
 }
 
 function mixpanel_track($event, $custom_properties = array(), $account = NULL) {
   global $user;
   
-  if (variable_get('mixpanel_token', '') == '') {
+  $token = variable_get('mixpanel_token', '');
+  if ($token == '') {
     return;
   }
 
@@ -149,15 +160,50 @@ function mixpanel_track($event, $custom_properties = array(), $account = NULL) {
   }
   
   // Let other modules alter the properties.
-  drupal_alter('mixpanel_event', $properties, $event);
-  
-//  dsm(array('event'=>$event, 'prop' => $properties));
-  $token = variable_get('mixpanel_token', '');
-  $metrics = new MetricsTracker($token);
-  $metrics->track($event, $properties);
+  drupal_alter('mixpanel_event', $properties, $event, $account);
+
+  // These properties can't be overridden
+  $properties['token'] = $token;
+  $properties['time'] = time();
+
+  if (module_exists('drupal_queue')) {
+    // if possible, we queue up the API call to actually be made on cron
+    $queue = drupal_queue_get('mixpanel_track');
+    $queue->createItem(array('event' => $event, 'properties' => $properties));
+  }
+  else {
+    // Actually send the request NOW.
+    _mixpanel_track($event, $properties);
+  }
 }
 
+function _mixpanel_track($event, $properties) {
+  $params = array(
+    'event' => $event,
+    'properties' => $properties,
+  );
+  $url = MIXPANEL_API_URL . 'track/?data=' . base64_encode(drupal_to_js($params));
 
+  $result = drupal_http_request($url);
+
+  if ($result->code != 200) {
+    watchdog('mixpanel', 'Unable send event %event to Mixpanel with properties: %properties', array('%event' => $event, '%properties' => drupal_to_js($properties), WATCHDOG_ERROR));
+    return FALSE;
+  }
+
+  return TRUE;
+}
+
+function _mixpanel_track_queue_callback($item) {
+  // actually send the request to the Mixpanel API
+  $success = _mixpanel_track($item['event'], $item['properties']);
+
+  // if it was unsuccessful, we re-queue the item
+  if (!$success) {
+    $queue = drupal_queue_get('mixpanel_track');
+    $queue->createItem($item);
+  }
+}
 
 /**
  * Implementation of hook_form_alter().
