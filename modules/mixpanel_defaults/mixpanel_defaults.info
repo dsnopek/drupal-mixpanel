@@ -1,0 +1,4 @@
+name = Mixpanel defaults
+description = Sends some basic Drupal events to Mixpanel.
+package = Mixpanel
+core = 6.x
