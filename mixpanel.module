@@ -127,7 +127,6 @@ function mixpanel_get_defaults($account = NULL, $reset = FALSE) {
       'mp_name_tag' => $account->name,
       'distinct_id' => $account->uid,
       'ip' => ip_address(),
-      'time' => time(),
     );
 
     // Let other modules alter the defaults.
@@ -161,8 +160,9 @@ function mixpanel_track($event, $custom_properties = array(), $account = NULL) {
   // Let other modules alter the properties.
   drupal_alter('mixpanel_event', $properties, $event, $account);
 
-  // The one thing that other modules CAN'T alter.
+  // These properties can't be overridden
   $properties['token'] = $token;
+  $properties['time'] = time();
 
   if (module_exists('drupal_queue')) {
     // if possible, we queue up the API call to actually be made on cron
