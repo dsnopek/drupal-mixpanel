@@ -1,10 +1,5 @@
 <?php
 
-include('includes/mixpanel.node.inc');
-include('includes/mixpanel.user.inc');
-include('includes/mixpanel.comment.inc');
-include('includes/mixpanel.og.inc');
-
 define('MIXPANEL_API_URL', 'http://api.mixpanel.com/');
 
 /**
@@ -200,23 +195,6 @@ function _mixpanel_track_queue_callback($item) {
   if (!$success) {
     $queue = drupal_queue_get('mixpanel_track');
     $queue->createItem($item);
-  }
-}
-
-/**
- * Implementation of hook_form_alter().
- */
-function mixpanel_form_alter(&$form, &$form_state, $form_id) {
-  switch ($form_id) {
-    case 'contact_mail_user':
-      $form['#submit'][] = "mixpanel_contact_mail_user_submit";
-      break;
-    case 'user_profile_form':
-      $form['#submit'][] = "mixpanel_user_profile_form_submit";
-      break;
-    case 'search_theme_form':
-      $form['#submit'][] = "mixpanel_search_theme_form_submit";
-      break;
   }
 }
 

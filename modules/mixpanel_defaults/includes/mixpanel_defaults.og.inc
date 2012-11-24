@@ -3,7 +3,7 @@
 /*
  * Implementation of hook_og().
  */
-function mixpanel_og($op, $gid, $uid, $args) {
+function mixpanel_defaults_og($op, $gid, $uid, $args) {
   if (variable_get('mixpanel_token', '') == '') {
     return;
   }

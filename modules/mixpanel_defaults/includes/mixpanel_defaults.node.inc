@@ -3,7 +3,7 @@
 /*
  * Implementation of hook_nodeapi().
  */
-function mixpanel_nodeapi($node, $op) {
+function mixpanel_defaults_nodeapi($node, $op) {
   if (variable_get('mixpanel_token', '') == '') {
     return;
   }
@@ -31,6 +31,6 @@ function mixpanel_nodeapi($node, $op) {
 /**
  * Submit function for the search form to let us track searches.
  */
-function mixpanel_search_theme_form_submit($form, $form_state) {
+function mixpanel_defaults_search_theme_form_submit($form, $form_state) {
   mixpanel_track("search", array('search-string' => $form_state['values']['search_theme_form']));
 }

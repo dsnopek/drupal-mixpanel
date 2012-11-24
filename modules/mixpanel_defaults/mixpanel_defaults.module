@@ -1,0 +1,24 @@
+<?php
+
+include('includes/mixpanel_defaults.node.inc');
+include('includes/mixpanel_defaults.user.inc');
+include('includes/mixpanel_defaults.comment.inc');
+include('includes/mixpanel_defaults.og.inc');
+
+/**
+ * Implementation of hook_form_alter().
+ */
+function mixpanel_defaults_form_alter(&$form, &$form_state, $form_id) {
+  switch ($form_id) {
+    case 'contact_mail_user':
+      $form['#submit'][] = "mixpanel_defaults_contact_mail_user_submit";
+      break;
+    case 'user_profile_form':
+      $form['#submit'][] = "mixpanel_defaults_user_profile_form_submit";
+      break;
+    case 'search_theme_form':
+      $form['#submit'][] = "mixpanel_defaults_search_theme_form_submit";
+      break;
+  }
+}
+
