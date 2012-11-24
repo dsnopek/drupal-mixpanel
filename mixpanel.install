@@ -9,3 +9,10 @@ function mixpanel_update_6001() {
   ));
 }
 
+/**
+ * For backward compatibility, automatically set the Javascript library version to 1.0.
+ */
+function mixpanel_update_6002() {
+  variable_set('mixpanel_library_version', '1.0');
+}
+

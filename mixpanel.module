@@ -12,13 +12,15 @@ function mixpanel_init() {
     if ($user->uid != 0) {
       drupal_add_js(drupal_get_path('module', 'mixpanel') . "/mixpanel.js");
 
-      $defaults_wrapped = array('defaults' => mixpanel_get_defaults());
+      $defaults_wrapped = array('defaults' => mixpanel_get_defaults(), 'people' => mixpanel_get_people_data());
       drupal_add_js(array('mixpanel' => $defaults_wrapped), 'setting');
     }
     // Convert the token string to JavaScript to prevent an XSS attack
     $token = drupal_to_js($token);
+
     // Add the Mixpanel tracking code to HTML Head.
-    $mixpanel_init_code = <<<code
+    if (variable_get('mixpanel_library_version', '2.0') == '1.0') {
+      $mixpanel_init_code = <<<code
 <script type="text/javascript">
 var mpq = [];
 mpq.push(["init", $token]);
@@ -29,6 +31,16 @@ var s = document.getElementsByTagName("script")[0]; s.parentNode.insertBefore(mp
 })();
 </script>
 code;
+    }
+    else {
+      $mixpanel_init_code = <<<code
+<script type="text/javascript">
+(function(c,a){window.mixpanel=a;var b,d,h,e;b=c.createElement("script");b.type="text/javascript";b.async=!0;b.src=("https:"===c.location.protocol?"https:":"http:")+'//cdn.mxpnl.com/libs/mixpanel-2.1.min.js';d=c.getElementsByTagName("script")[0];d.parentNode.insertBefore(b,d);a._i=[];a.init=function(b,c,f){function d(a,b){var c=b.split(".");2==c.length&&(a=a[c[0]],b=c[1]);a[b]=function(){a.push([b].concat(Array.prototype.slice.call(arguments,0)))}}var g=a;"undefined"!==typeof f?
+g=a[f]=[]:f="mixpanel";g.people=g.people||[];h="disable track track_pageview track_links track_forms register register_once unregister identify name_tag set_config people.identify people.set people.increment".split(" ");for(e=0;e<h.length;e++)d(g,h[e]);a._i.push([b,c,f])};a.__SV=1.1})(document,window.mixpanel||[]);
+mixpanel.init($token);
+</script>
+code;
+    }
     drupal_set_html_head($mixpanel_init_code);
   }
 }
@@ -58,6 +70,17 @@ function mixpanel_admin_settings() {
     '#type' => 'textfield',
     '#default_value' => variable_get('mixpanel_token', ''),
     '#description' => t('The token you got from mixpanel.com for this domain.'),
+  );
+
+  $form['mixpanel_library_version'] = array(
+    '#title' => t('Mixpanel Javascript library version'),
+    '#type' => 'radios',
+    '#options' => array(
+      '1.0' => t('1.0 - <em>Don\'t use unless you have legacy code which depends on 1.0!</em>'),
+      '2.0' => '2.0',
+    ),
+    '#default_value' => variable_get('mixpanel_library_version', '2.0'),
+    '#description' => t('In April 2012, Mixpanel updated their Javascript library to version 2.0. It adds several new features but unfortunately has a completely new API. Unless you have legacy code which depends on 1.0, you should be using 2.0!'),
   );
 
   return system_settings_form($form);
@@ -125,6 +148,31 @@ function mixpanel_get_defaults($account = NULL, $reset = FALSE) {
   }
 
   return $defaults[$account->uid];
+}
+
+/**
+ * Get information about a user account for Mixpanel 'People' data.
+ *
+ * @return array of values to pass to Mixpanel.people.set().
+ */
+function mixpanel_get_people_data($account = NULL) {
+  global $user;
+
+  if (is_null($account)) {
+    $account = $user;
+  }
+
+  $datefmt = 'Y-m-d H:i:s';
+
+  $data = array(
+    '$email' => $account->mail,
+    '$created' => date($datefmt, $account->created),
+    '$last_login' => date($datefmt, $account->login),
+  );
+
+  drupal_alter('mixpanel_people_data', $data, $account);
+
+  return $data;
 }
 
 function mixpanel_track($event, $custom_properties = array(), $account = NULL) {
