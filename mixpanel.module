@@ -154,6 +154,9 @@ function mixpanel_get_people_data($account = NULL) {
     $account = $user;
   }
 
+  $default_timezone = date_default_timezone_get();
+  date_default_timezone_set('UTC');
+
   $datefmt = 'Y-m-d H:i:s';
 
   $data = array(
@@ -161,6 +164,8 @@ function mixpanel_get_people_data($account = NULL) {
     '$created' => date($datefmt, $account->created),
     '$last_login' => date($datefmt, $account->login),
   );
+
+  date_default_timezone_set($default_timezone);
 
   drupal_alter('mixpanel_people_data', $data, $account);
 
