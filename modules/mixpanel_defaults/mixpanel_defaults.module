@@ -6,6 +6,16 @@ include('includes/mixpanel_defaults.comment.inc');
 include('includes/mixpanel_defaults.og.inc');
 
 /**
+ * Implementation of hook_init().
+ */
+function mixpanel_init() {
+  // Track visits to user pages.
+  if (arg(0) == "user" && is_numeric(arg(1))) {
+    mixpanel_track("user-view-profile", array('visited-user' => arg(1)));
+  }
+}
+
+/**
  * Implementation of hook_form_alter().
  */
 function mixpanel_defaults_form_alter(&$form, &$form_state, $form_id) {
