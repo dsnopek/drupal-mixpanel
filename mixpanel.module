@@ -18,6 +18,9 @@ function mixpanel_init() {
     // Convert the token string to JavaScript to prevent an XSS attack
     $token = drupal_to_js($token);
 
+    // Convert the token string to JavaScript to prevent an XSS attack
+    $token = drupal_to_js($token);
+
     // Add the Mixpanel tracking code to HTML Head.
     if (variable_get('mixpanel_library_version', '2.0') == '1.0') {
       $mixpanel_init_code = <<<code

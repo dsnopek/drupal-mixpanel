@@ -1,0 +1,21 @@
+diff --git a/mixpanel.module b/mixpanel.module
+index 75c3da6..a814fd2 100644
+--- a/mixpanel.module
++++ b/mixpanel.module
+@@ -21,11 +21,13 @@ function mixpanel_init() {
+       $defaults_wrapped = array('defaults' => mixpanel_get_defaults());
+       drupal_add_js(array('mixpanel' => $defaults_wrapped), 'setting');
+     }
+-  // Add the Mixpanel tracking code to HTML Head.
+-  $mixpanel_init_code = <<<code
++    // Convert the token string to JavaScript to prevent an XSS attack
++    $token = drupal_to_js($token);
++    // Add the Mixpanel tracking code to HTML Head.
++    $mixpanel_init_code = <<<code
+ <script type="text/javascript">
+ var mpq = [];
+-mpq.push(["init", "$token"]);
++mpq.push(["init", $token]);
+ (function() {
+ var mp = document.createElement("script"); mp.type = "text/javascript"; mp.async = true;
+ mp.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + "//api.mixpanel.com/site_media/js/api/mixpanel.js";
