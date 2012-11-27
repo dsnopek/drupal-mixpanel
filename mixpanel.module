@@ -15,8 +15,6 @@ function mixpanel_init() {
       $defaults_wrapped = array('defaults' => mixpanel_get_defaults(), 'people' => mixpanel_get_people_data());
       drupal_add_js(array('mixpanel' => $defaults_wrapped), 'setting');
     }
-    // Convert the token string to JavaScript to prevent an XSS attack
-    $token = drupal_to_js($token);
 
     // Convert the token string to JavaScript to prevent an XSS attack
     $token = drupal_to_js($token);
