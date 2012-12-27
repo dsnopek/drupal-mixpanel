@@ -85,17 +85,6 @@ function mixpanel_requirements($phase) {
 }
 
 /**
- * Implements hook_cron_queue_info().
- */
-function mixpanel_cron_queue_info() {
-  return array(
-    'mixpanel_track' => array(
-      'worker callback' => '_mixpanel_track_queue_callback',
-    ),
-  );
-}
-
-/**
  * Returns a string representing the browser making the request, in a way that
  * is ccompatible with the Mixpanel Javascript library's $browser property.
  */
