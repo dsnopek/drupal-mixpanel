@@ -108,7 +108,7 @@ function mixpanel_requirements($phase) {
 }
 
 /**
- * Implementation of hook_cron_queue_info().
+ * Implements hook_cron_queue_info().
  */
 function mixpanel_cron_queue_info() {
   return array(
@@ -116,6 +116,129 @@ function mixpanel_cron_queue_info() {
       'worker callback' => '_mixpanel_track_queue_callback',
     ),
   );
+}
+
+/**
+ * Returns a string representing the browser making the request, in a way that
+ * is ccompatible with the Mixpanel Javascript library's $browser property.
+ */
+function _mixpanel_get_browser() {
+  $ua = $_SERVER['HTTP_USER_AGENT'];
+
+  // NOTE: This wasn't a direct port of the Mixpanel Javascript code, because it
+  // uses the navigator.vendor and window.opera properties, that we don't have
+  // access to. Luckily, the 'vendor' comes from the user agent, so can use that
+  // with hopefully the same effect!
+
+  if (preg_match('/Opera/', $ua)) {
+    if (preg_match('/Mini/', $ua)) {
+      return 'Opera Mini';
+    }
+    return 'Opera';
+  }
+  elseif (preg_match('/(BlackBerry|PlayBook|BB10)/i', $ua)) {
+    return 'BlackBerry';
+  }
+  elseif (preg_match('/Chrome/', $ua)) {
+    return 'Chrome';
+  }
+  elseif (preg_match('/Apple/', $ua)) {
+    if (preg_match('/Mobile/', $ua)) {
+      return 'Mobile Safari';
+    }
+    return 'Safari';
+  }
+  elseif (preg_match('/Android/', $ua)) {
+    return 'Android Mobile';
+  }
+  elseif (preg_match('/Konqueror/', $ua)) {
+    return 'Konqueror';
+  }
+  elseif (preg_match('/Firefox/', $ua)) {
+    return 'Firefox';
+  }
+  elseif (preg_match('/MSIE/', $ua)) {
+    return 'Internet Explorer';
+  }
+  elseif (preg_match('/Gecko/', $ua)) {
+    return 'Mozilla';
+  }
+
+  return '';
+}
+
+/**
+ * Returns a string representing the OS making the request, in a way that
+ * is ccompatible with the Mixpanel Javascript library's $os property.
+ */
+function _mixpanel_get_os() {
+  $ua = $_SERVER['HTTP_USER_AGENT'];
+
+  if (preg_match('/Windows/i', $ua)) {
+    if (preg_match('/Phone/', $ua)) {
+      return 'Windows Mobile';
+    }
+    return 'Windows';
+  }
+  elseif (preg_match('/(iPhone|iPad|iPod)/', $ua)) {
+    return 'iOS';
+  }
+  elseif (preg_match('/Android/', $ua)) {
+    return 'Android';
+  }
+  elseif (preg_match('/(BlackBerry|PlayBook|BB10)/i', $ua)) {
+    return 'BlackBerry';
+  }
+  elseif (preg_match('/Mac/i', $ua)) {
+    return 'Mac OS X';
+  }
+  elseif (preg_match('/Linux/', $ua)) {
+    return 'Linux';
+  }
+
+  return '';
+}
+
+/**
+ * Returns a string representing the device making the request, in a way that
+ * is ccompatible with the Mixpanel Javascript library's $device property.
+ */
+function _mixpanel_get_device() {
+  $ua = $_SERVER['HTTP_USER_AGENT'];
+
+  if (preg_match('/iPhone/', $ua)) {
+    return 'iPhone';
+  }
+  elseif (preg_match('/iPad/', $ua)) {
+    return 'iPad';
+  }
+  elseif (preg_match('/iPod/', $ua)) {
+    return 'iPod Touch';
+  }
+  elseif (preg_match('/(BlackBerry|PlayBook|BB10)/i', $ua)) {
+    return 'BlackBerry';
+  }
+  elseif (preg_match('/Windows Phone/i', $ua)) {
+    return 'Windows Phone';
+  }
+  elseif (preg_match('/Android/', $ua)) {
+    return 'Android';
+  }
+
+  return '';
+}
+
+/**
+ * Returns referring domain for the current request, in a way that is
+ * ccompatible with the Mixpanel Javascript library's $referring_domain
+ * property.
+ */
+function _mixpanel_get_referring_domain() {
+  $parts = explode('/', $_SERVER['HTTP_REFERER']);
+  if (count($parts) >= 3) {
+    return $parts[2];
+  }
+  return '';
 }
 
 /**
@@ -133,18 +256,32 @@ function mixpanel_get_defaults($account = NULL, $reset = FALSE) {
   }
 
   if (!isset($defaults[$account->uid]) || $reset) {
-    $cohort = format_date($account->created, 'custom', "M-Y");
-    $defaults[$account->uid] = array(
-      'uid' => $account->uid,
-      'user_created' => $account->created,
-      'cohort' => $cohort,
-      'mp_name_tag' => $account->name,
-      'distinct_id' => $account->uid,
+    $properties = array(
       'ip' => ip_address(),
+      '$browser' => _mixpanel_get_browser(),
+      '$os' => _mixpanel_get_os(),
+      '$device' => _mixpanel_get_device(),
+      '$referrer' => $_SERVER['HTTP_REFERER'],
+      '$referring_domain' => _mixpanel_get_referring_domain(),
     );
 
+    // for authenticated users
+    if ($account->uid != 0) {
+      // TODO: some of these probably belong in mixpanel_defaults!
+      $cohort = format_date($account->created, 'custom', "M-Y");
+      $properties = array_merge($properties, array(
+        'uid' => $account->uid,
+        'user_created' => $account->created,
+        'cohort' => $cohort,
+        'mp_name_tag' => $account->name,
+        'distinct_id' => $account->uid,
+      ));
+    }
+
     // Let other modules alter the defaults.
-    drupal_alter('mixpanel_defaults', $defaults[$account->uid], $account);
+    drupal_alter('mixpanel_defaults', $properties, $account);
+
+    $defaults[$account->uid] = $properties;
   }
 
   return $defaults[$account->uid];
@@ -182,7 +319,7 @@ function mixpanel_get_people_data($account = NULL) {
 
 function mixpanel_track($event, $custom_properties = array(), $account = NULL) {
   global $user;
-  
+
   $token = variable_get('mixpanel_token', '');
   if ($token == '') {
     return;
